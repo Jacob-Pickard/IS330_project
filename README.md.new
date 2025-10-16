@@ -59,7 +59,6 @@ src/
 - ✅ VSCode and Claude integration
 - ✅ Efficient development environment setup
 
-
 ## Getting Started
 
 ### Prerequisites
@@ -95,32 +94,25 @@ python src/scraping/scrape_events.py
 python src/scraping/scrape_events.py --view
 ```
 
-Analysis Tools:
+### Analysis Tools
 ```bash
 # Run basic statistical analysis
 python src/analysis/basic_analysis.py
 
 # Run enhanced AI-powered analysis
-# Features:
-# - Building usage patterns
-# - Recurring event identification
-# - Time block distribution
-# - Event type categorization
-# - AI-generated insights
-python src/enhanced_analysis.py
+python src/analysis/enhanced_analysis.py
 ```
 
-Database Maintenance:
+### Database Maintenance
 ```bash
 # Check for past events and duplicates in database
 python src/database/check_db.py
 
-# Reinitialize database and rescrape all events (useful if database becomes corrupted)
+# Reinitialize database and rescrape all events
 rm data/olympic_college.db
 python src/database/init_db.py
 python src/scraping/scrape_events.py
 ```
-
 
 ## Development History
 
@@ -137,9 +129,8 @@ python src/scraping/scrape_events.py
   - Smart event categorization
   - AI-generated insights for facility usage
 - ✅ Improved documentation and codebase cleanup
-  - Enhanced README with expanded usage docs and better formatting
+  - Enhanced README with expanded usage docs
   - Removed testing files (generate_poem.py)
-
 
 ### October 12, 2025
 - ✅ Enhanced data integrity
