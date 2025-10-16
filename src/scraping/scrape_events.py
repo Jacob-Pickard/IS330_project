@@ -1,13 +1,78 @@
 import requests
 from bs4 import BeautifulSoup
 import sqlite3
-import os
 from datetime import datetime
 import time
+import sys
+from pathlib import Path
+sys.path.append(str(Path(__file__).parent.parent))
+from database.db_utils import get_db_connection
 
-def get_db_connection():
-    db_path = os.path.join(os.path.dirname(__file__), '..', 'data', 'olympic_college.db')
-    return sqlite3.connect(db_path)
+def cleanup_past_events():
+    """Remove past events and duplicates from the database."""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    try:
+        # Get count of past events before deletion
+        cursor.execute('SELECT COUNT(*) FROM events WHERE date < DATE("now")')
+        past_events_count = cursor.fetchone()[0]
+        
+        # Delete past events
+        cursor.execute('DELETE FROM events WHERE date < DATE("now")')
+        
+        # Get count of duplicates
+        cursor.execute('''
+            WITH duplicates AS (
+                SELECT MIN(id) as keep_id, title, date, time
+                FROM events 
+                GROUP BY title, date, time
+                HAVING COUNT(*) > 1
+            )
+            SELECT COUNT(*) FROM events e
+            WHERE EXISTS (
+                SELECT 1 FROM duplicates d
+                WHERE e.title = d.title 
+                AND e.date = d.date 
+                AND COALESCE(e.time, '') = COALESCE(d.time, '')
+                AND e.id != d.keep_id
+            )
+        ''')
+        duplicate_count = cursor.fetchone()[0]
+        
+        # Remove duplicates, keeping the earliest entry
+        cursor.execute('''
+            DELETE FROM events
+            WHERE id IN (
+                SELECT e.id FROM events e
+                INNER JOIN (
+                    SELECT title, date, time, MIN(id) as keep_id
+                    FROM events 
+                    GROUP BY title, date, time
+                    HAVING COUNT(*) > 1
+                ) d ON e.title = d.title 
+                    AND e.date = d.date 
+                    AND COALESCE(e.time, '') = COALESCE(d.time, '')
+                WHERE e.id != d.keep_id
+            )
+        ''')
+        
+        # Delete orphaned category associations
+        cursor.execute('''
+            DELETE FROM event_categories 
+            WHERE event_id NOT IN (SELECT id FROM events)
+        ''')
+        
+        conn.commit()
+        print(f"\nCleanup summary:")
+        print(f"- Removed {past_events_count} past events")
+        print(f"- Removed {duplicate_count} duplicate events")
+        
+    except Exception as e:
+        print(f"\nError cleaning up events: {str(e)}")
+        conn.rollback()
+    finally:
+        conn.close()
 
 from datetime import datetime
 
@@ -74,8 +139,8 @@ def scrape_events():
                     datetime_str = date_elem.get('datetime') if date_elem else None
                     event_date, event_time = parse_datetime(datetime_str)
                     
-                    # Skip events without a valid date
-                    if not event_date:
+                    # Skip events without a valid date or past events
+                    if not event_date or datetime.strptime(event_date, '%Y-%m-%d') < datetime.now():
                         continue
                     
                     # Get location
@@ -108,19 +173,6 @@ def scrape_events():
                 except Exception as e:
                     print(f"Error processing event: {e}")
                     continue
-
-                # Parse date and time
-                datetime_str = date_elem.get('datetime') if date_elem else None
-                event_date, event_time = parse_datetime(datetime_str)
-
-                events.append({
-                    'title': title,
-                    'description': description,
-                    'date': event_date,
-                    'time': event_time,
-                    'location': location,
-                    'link': link
-                })
 
             if len(event_rows) < 10:  # Assuming pagination shows 10 events per page
                 print("Reached last page, stopping.")
@@ -242,6 +294,7 @@ def main():
         view_events()
     else:
         print("Starting event scraping...")
+        cleanup_past_events()  # Clean up before scraping new events
         events = scrape_events()
         if events:
             save_events_to_db(events)

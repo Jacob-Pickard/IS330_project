@@ -1,14 +1,17 @@
-import sqlite3
 import os
+from pathlib import Path
+import sys
+from pathlib import Path
+sys.path.append(str(Path(__file__).parent.parent))
+from database.db_utils import get_db_connection, get_db_path
 
 def init_database():
     # Create database directory if it doesn't exist
-    db_dir = os.path.join(os.path.dirname(__file__), '..', 'data')
+    db_dir = os.path.dirname(get_db_path())
     os.makedirs(db_dir, exist_ok=True)
     
     # Connect to SQLite database (creates it if it doesn't exist)
-    db_path = os.path.join(db_dir, 'olympic_college.db')
-    conn = sqlite3.connect(db_path)
+    conn = get_db_connection()
     cursor = conn.cursor()
 
     # Create events table
@@ -23,7 +26,7 @@ def init_database():
         link TEXT,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         last_updated DATETIME DEFAULT CURRENT_TIMESTAMP,
-        UNIQUE(title, date, time)
+        UNIQUE(link)
     )
     ''')
 
@@ -133,7 +136,7 @@ def init_database():
     conn.commit()
     conn.close()
 
-    print(f"Database initialized successfully with sample data at: {db_path}")
+    print(f"Database initialized successfully with sample data at: {get_db_path()}")
 
 if __name__ == "__main__":
     init_database()

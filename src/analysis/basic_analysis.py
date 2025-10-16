@@ -1,9 +1,10 @@
-import sqlite3
+import sys
+from pathlib import Path
 from collections import Counter
 from datetime import datetime
 
-def connect_db():
-    return sqlite3.connect('data/olympic_college.db')
+sys.path.append(str(Path(__file__).parent.parent))
+from database.db_utils import get_db_connection as connect_db
 
 def analyze_events():
     conn = connect_db()
