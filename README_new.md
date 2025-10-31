@@ -49,8 +49,7 @@ IS330_project/
 ├── src/
 │   ├── analysis/              # Event analysis tools
 │   │   ├── basic_analysis.py     # Statistical analysis
-│   │   ├── enhanced_analysis.py  # AI-powered insights
-│   │   └── conflict_detection.py # Scheduling conflict detection
+│   │   └── enhanced_analysis.py  # AI-powered insights
 │   ├── content_enhancement/   # Content enhancement system
 │   │   └── content_enhancer.py   # Enhancement logic
 │   ├── database/             # Database management
@@ -78,7 +77,6 @@ The Event Manager CLI provides comprehensive access to all system features.
 python src/cli.py --init-db
 
 # Scrape new events from the Olympic College website
-# Note: Conflict detection runs automatically after scraping
 python src/cli.py --scrape
 
 # Enhance all events with AI-powered content analysis
@@ -137,15 +135,6 @@ python src/cli.py --enhanced-analysis
 # - Recurring event pattern detection
 # - AI-generated insights and recommendations
 # - SEO score analysis
-
-# Manually run conflict detection (also runs automatically after scraping)
-python src/cli.py --detect-conflicts
-# Shows:
-# - Venue double-bookings
-# - Building conflicts (multiple events in same building)
-# - Recurring event timing issues
-# - Alternative time slot suggestions for conflicts
-# - Detailed conflict reports with recommendations
 ```
 
 ### Understanding Analysis Features
@@ -196,7 +185,7 @@ The system identifies and suggests improvements for:
 
 #### Daily Update Workflow
 ```bash
-# 1. Scrape new events (conflict detection runs automatically)
+# 1. Scrape new events
 python src/cli.py --scrape
 
 # 2. Enhance new content
@@ -233,7 +222,7 @@ python src/cli.py --enhance-all
 
 ## 2. Development History
 
-### October 31, 2025 - Content Enhancement, Cleanup & Conflict Detection
+### October 31, 2025 - Content Enhancement & Cleanup
 - ✅ **Event Enhancement System**
   - Implemented AI-powered content enhancement module
   - Created enhanced database schema with automatic triggers
@@ -241,14 +230,6 @@ python src/cli.py --enhance-all
   - Added SEO scoring system (0-100 scale)
   - Implemented automatic tag generation
   - Added smart content improvement suggestions
-  
-- ✅ **Conflict Detection System**
-  - Implemented venue double-booking detection
-  - Added building conflict identification
-  - Created recurring event timing analysis
-  - Built time overlap detection algorithms
-  - Integrated conflict detection into CLI
-  - Generated detailed conflict reports
   
 - ✅ **Enhanced Database Architecture**
   - Added `enhanced_content` table for processed event data
@@ -373,17 +354,6 @@ python src/cli.py --enhance-all
   - AI-generated insights and recommendations
   - SEO score analysis (average, min, max)
 
-- ✅ **Conflict Detection System**
-  - Automatic execution after event scraping
-  - Venue double-booking detection
-  - Building conflict identification (multiple events in same building)
-  - Recurring event timing analysis
-  - Time overlap detection
-  - **Alternative time slot suggestions** for conflicting events
-  - Smart scheduling validation with standard time blocks (8 AM - 7 PM)
-  - Detailed conflict reports with event details
-  - Manual execution option available
-
 ### Command-Line Interface
 - ✅ **Comprehensive CLI Tool**
   - Unified interface for all operations
@@ -418,11 +388,11 @@ python src/cli.py --enhance-all
 ### High Priority
 
 #### Scheduling Intelligence
-- [x] **Conflict Detection** ✅ COMPLETED
-  - ✅ Identify venue double-bookings
-  - ✅ Detect time conflicts for recurring events
-  - ✅ Alert on scheduling overlaps
-  - ✅ Suggest alternative time slots
+- [ ] **Conflict Detection**
+  - Identify venue double-bookings
+  - Detect time conflicts for recurring events
+  - Alert on scheduling overlaps
+  - Suggest alternative time slots
 
 - [ ] **Schedule Optimization**
   - Event spacing recommendations

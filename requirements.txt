@@ -2,3 +2,7 @@ beautifulsoup4==4.12.3
 requests==2.31.0
 torch==2.2.0
 transformers==4.37.2
+spacy==3.7.2
+keybert==0.8.3
+nltk==3.8.1
+python-slugify==8.0.1

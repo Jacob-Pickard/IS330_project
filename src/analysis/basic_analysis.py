@@ -9,9 +9,9 @@ from database.db_utils import get_db_connection as connect_db
 def analyze_events():
     conn = connect_db()
     cursor = conn.cursor()
+    analysis = {}
     
     # 1. Most common event locations
-    print("Top 5 Most Common Event Locations:")
     cursor.execute("""
         SELECT location, COUNT(*) as count 
         FROM events 
@@ -20,12 +20,9 @@ def analyze_events():
         ORDER BY count DESC 
         LIMIT 5
     """)
-    for location, count in cursor.fetchall():
-        print(f"- {location}: {count} events")
-    print()
+    analysis['top_locations'] = {loc: count for loc, count in cursor.fetchall()}
 
     # 2. Events by day of week
-    print("Events by Day of Week:")
     cursor.execute("""
         SELECT 
             CASE CAST(strftime('%w', date) AS INTEGER)
@@ -42,12 +39,9 @@ def analyze_events():
         GROUP BY day_of_week
         ORDER BY CAST(strftime('%w', date) AS INTEGER)
     """)
-    for day, count in cursor.fetchall():
-        print(f"- {day}: {count} events")
-    print()
+    analysis['day_distribution'] = {day: count for day, count in cursor.fetchall()}
 
     # 3. Events per month
-    print("Number of Events by Month (2025):")
     cursor.execute("""
         SELECT 
             strftime('%m', date) as month,
@@ -59,10 +53,11 @@ def analyze_events():
     """)
     months = ['January', 'February', 'March', 'April', 'May', 'June', 
               'July', 'August', 'September', 'October', 'November', 'December']
-    for month_num, count in cursor.fetchall():
-        month_name = months[int(month_num) - 1]
-        print(f"- {month_name}: {count} events")
-    print()
+    month_results = cursor.fetchall()
+    analysis['month_distribution'] = {
+        months[int(month_num) - 1]: count 
+        for month_num, count in month_results
+    }
 
     # 4. Events with/without specific time
     cursor.execute("""
@@ -73,11 +68,27 @@ def analyze_events():
         FROM events
         GROUP BY time_status
     """)
-    print("Time Specification Analysis:")
-    for status, count in cursor.fetchall():
-        print(f"- {status}: {count} events")
+    analysis['time_specifications'] = {status: count for status, count in cursor.fetchall()}
 
     conn.close()
+    return analysis
 
 if __name__ == "__main__":
-    analyze_events()
+    # If run directly, print the analysis results
+    analysis = analyze_events()
+    
+    print("\nTop 5 Most Common Event Locations:")
+    for location, count in analysis['top_locations'].items():
+        print(f"- {location}: {count} events")
+    
+    print("\nEvents by Day of Week:")
+    for day, count in analysis['day_distribution'].items():
+        print(f"- {day}: {count} events")
+    
+    print("\nNumber of Events by Month (2025):")
+    for month, count in analysis['month_distribution'].items():
+        print(f"- {month}: {count} events")
+    
+    print("\nTime Specification Analysis:")
+    for status, count in analysis['time_specifications'].items():
+        print(f"- {status}: {count} events")

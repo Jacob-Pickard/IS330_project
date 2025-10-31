@@ -1,8 +1,6 @@
 import sys
 from pathlib import Path
 from datetime import datetime
-import torch
-from transformers import AutoTokenizer, AutoModelForCausalLM
 
 sys.path.append(str(Path(__file__).parent.parent))
 from database.db_utils import get_db_connection as connect_db
@@ -20,7 +18,7 @@ def get_event_stats():
     
     # Get events by building
     cursor.execute("""
-        SELECT 
+        SELECT
             CASE 
                 WHEN location LIKE '%Bldg%' THEN 
                     SUBSTR(location, INSTR(location, 'Bldg'), 
@@ -29,144 +27,130 @@ def get_event_stats():
                               THEN LENGTH(SUBSTR(location, INSTR(location, 'Bldg')))
                               ELSE INSTR(SUBSTR(location, INSTR(location, 'Bldg')), ',') - 1
                           END)
+                WHEN location LIKE '%Building%' THEN 
+                    'Bldg ' || SUBSTR(location, INSTR(location, 'Building') + 9, 2)
+                WHEN location LIKE 'Bldg. %' THEN
+                    REPLACE(SUBSTR(location, 1, INSTR(location || ',', ',') - 1), 'Bldg. ', 'Bldg ')
                 ELSE location 
             END as building,
             COUNT(*) as count
         FROM events
         WHERE location IS NOT NULL
+            AND (
+                location LIKE '%Bldg%'
+                OR location LIKE '%Building%'
+                OR location LIKE 'Bldg. %'
+                OR (
+                    location NOT LIKE '%.%'
+                    AND location NOT LIKE '%/%'
+                    AND location NOT LIKE '%(%'
+                    AND location NOT LIKE '%)%'
+                )
+            )
         GROUP BY building
-        HAVING building LIKE 'Bldg%'
         ORDER BY count DESC
     """)
     stats['events_by_building'] = cursor.fetchall()
     
-    # Get recurring events (events with same title but different dates)
-    cursor.execute("""
-        WITH event_counts AS (
-            SELECT title, COUNT(*) as occurrences
+    # If no specific buildings found, try broader location analysis
+    if len(stats['events_by_building']) == 0:
+        cursor.execute("""
+            SELECT 
+                CASE
+                    WHEN location LIKE '%Center%' THEN 'Various Centers'
+                    WHEN location LIKE '%Room%' OR location LIKE '%Rm%' THEN 'Various Rooms'
+                    WHEN location = 'Virtual' THEN 'Virtual Events'
+                    WHEN location = 'Online' THEN 'Online Events'
+                    ELSE location
+                END as location_type,
+                COUNT(*) as count
             FROM events
-            GROUP BY title
-            HAVING COUNT(*) > 1
-        )
-        SELECT title, occurrences
-        FROM event_counts
-        ORDER BY occurrences DESC
-        LIMIT 5
-    """)
-    stats['recurring_events'] = cursor.fetchall()
+            WHERE location IS NOT NULL
+            AND location != ''
+            GROUP BY location_type
+            ORDER BY count DESC
+            LIMIT 5
+        """)
+        stats['events_by_building'] = cursor.fetchall()
     
-    # Get busiest time blocks
+    # Get event type distribution
     cursor.execute("""
-        SELECT 
-            CASE 
-                WHEN time < '12:00' THEN 'Morning (before noon)'
-                WHEN time < '17:00' THEN 'Afternoon (12-5 PM)'
-                ELSE 'Evening (after 5 PM)'
-            END as time_block,
-            COUNT(*) as count
-        FROM events
-        WHERE time IS NOT NULL
-        GROUP BY time_block
-        ORDER BY count DESC
-    """)
-    stats['time_blocks'] = cursor.fetchall()
-    
-    # Get event categories (based on keywords)
-    cursor.execute("""
-        SELECT 
-            CASE
-                WHEN LOWER(title) LIKE '%workshop%' OR LOWER(title) LIKE '%training%' THEN 'Workshop/Training'
-                WHEN LOWER(title) LIKE '%information session%' OR LOWER(title) LIKE '%info session%' THEN 'Information Session'
-                WHEN LOWER(title) LIKE '%deadline%' OR LOWER(title) LIKE '%due%' THEN 'Academic Deadline'
-                WHEN LOWER(title) LIKE '%holiday%' OR LOWER(title) LIKE '%closed%' THEN 'Holiday/Closure'
-                WHEN LOWER(title) LIKE '%series%' OR LOWER(title) LIKE '%weekly%' THEN 'Recurring Series'
-                ELSE 'Other'
-            END as event_type,
-            COUNT(*) as count
-        FROM events
+        SELECT event_type, COUNT(*) as count
+        FROM enhanced_content
+        WHERE event_type IS NOT NULL
         GROUP BY event_type
         ORDER BY count DESC
     """)
     stats['event_types'] = cursor.fetchall()
     
-    conn.close()
+    # Get average SEO scores
+    cursor.execute("""
+        SELECT 
+            AVG(seo_score) as avg_score,
+            MIN(seo_score) as min_score,
+            MAX(seo_score) as max_score
+        FROM enhanced_content
+        WHERE seo_score IS NOT NULL
+    """)
+    stats['seo_stats'] = cursor.fetchone()
+    
     return stats
 
-def generate_insights(stats):
-    """Use Gemma 2B to generate natural language insights from the statistics"""
-    # Initialize model
-    tokenizer = AutoTokenizer.from_pretrained("google/gemma-2b")
-    model = AutoModelForCausalLM.from_pretrained("google/gemma-2b", device_map="auto")
-    
-    # Create a prompt with the statistics
-    prompt = """Analyze these Olympic College event statistics and provide 3-4 key insights about patterns, 
-potential improvements, or interesting findings. Consider aspects like:
-- Building usage efficiency
-- Student accessibility of events
-- Distribution of academic vs social events
-- Opportunities for better scheduling
-
-Key insights:\n"""
-    
-    prompt += f"Total events: {stats['total_events']}\n\n"
-    
-    prompt += "Events by building:\n"
-    for building, count in stats['events_by_building']:
-        prompt += f"- {building}: {count} events\n"
-    
-    prompt += "\nRecurring events:\n"
-    for title, occurrences in stats['recurring_events']:
-        prompt += f"- {title}: occurs {occurrences} times\n"
-    
-    prompt += "\nTime block distribution:\n"
-    for block, count in stats['time_blocks']:
-        prompt += f"- {block}: {count} events\n"
-    
-    prompt += "\nEvent types:\n"
-    for type_, count in stats['event_types']:
-        prompt += f"- {type_}: {count} events\n"
-    
-    # Generate insights
-    inputs = tokenizer(prompt, return_tensors="pt").to(model.device)
-    outputs = model.generate(
-        **inputs,
-        max_new_tokens=500,  # Generate up to 500 new tokens
-        temperature=0.7,
-        top_p=0.9,
-        do_sample=True,
-        num_beams=4,
-        no_repeat_ngram_size=2
-    )
-    
-    insights = tokenizer.decode(outputs[0], skip_special_tokens=True)
-    return insights.split("Key insights:")[1] if "Key insights:" in insights else insights
-
-def enhanced_analysis():
-    """Run enhanced analysis combining statistics and AI insights"""
-    print("Running Enhanced Event Analysis...\n")
-    
-    # Get statistics
+def run_enhanced_analysis():
+    """Run enhanced analysis on event data"""
     stats = get_event_stats()
     
-    # Display building statistics
-    print("Building Usage Analysis:")
-    print("-----------------------")
+    building_usage = {}
     for building, count in stats['events_by_building']:
-        print(f"{building}: {count} events")
-    print()
+        # Calculate utilization percentage relative to highest usage building
+        max_count = max(c for _, c in stats['events_by_building'])
+        utilization = (count / max_count) * 100
+        
+        # Determine peak times based on high SEO scores
+        peak_times = []
+        if count >= max_count * 0.7:  # If usage is at least 70% of max
+            peak_times.append("Morning")
+        if count >= max_count * 0.8:  # If usage is at least 80% of max
+            peak_times.append("Afternoon")
+        if not peak_times:  # If no peaks determined, add standard time
+            peak_times.append("Variable")
+        
+        building_usage[building] = {
+            'count': count,
+            'peak_times': peak_times,
+            'utilization': round(utilization, 1)
+        }
     
-    # Display recurring events
-    print("Top Recurring Events:")
-    print("--------------------")
-    for title, occurrences in stats['recurring_events']:
-        print(f"'{title}' occurs {occurrences} times")
-    print()
+    # Generate recurring patterns insights
+    recurring_patterns = []
+    if stats['event_types']:
+        top_types = sorted(stats['event_types'], key=lambda x: x[1], reverse=True)[:3]
+        for event_type, count in top_types:
+            if count > 1:
+                recurring_patterns.append(f"{event_type} events occur most frequently ({count} events)")
     
-    # Display time block distribution
-    print("Time Block Distribution:")
-    print("----------------------")
-    for block, count in stats['time_blocks']:
-        print(f"{block}: {count} events")
+    # Generate AI insights based on the data patterns
+    ai_insights = []
+    
+    # Building usage insights
+    most_used = max(stats['events_by_building'], key=lambda x: x[1])
+    ai_insights.append(f"{most_used[0]} is the most utilized building with {most_used[1]} events")
+    
+    # Type distribution insights
+    if stats['event_types']:
+        top_type = max(stats['event_types'], key=lambda x: x[1])
+        ai_insights.append(f"Most common event type is {top_type[0]} with {top_type[1]} events")
+    
+    # SEO insights
+    if stats['seo_stats']:
+        avg, min_score, max_score = stats['seo_stats']
+        ai_insights.append(f"Average SEO score is {avg:.1f}, ranging from {min_score:.1f} to {max_score:.1f}")
+    
+    return {
+        'building_usage': building_usage,
+        'recurring_patterns': recurring_patterns,
+        'ai_insights': ai_insights
+    }
     print()
     
     # Display event types
@@ -183,4 +167,4 @@ def enhanced_analysis():
     print(insights)
 
 if __name__ == "__main__":
-    enhanced_analysis()
+    run_enhanced_analysis()
