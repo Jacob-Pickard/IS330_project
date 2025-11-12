@@ -1,0 +1,34 @@
+2025-11-12 11:19:22,134 - EventManager - WARNING - icalendar library not installed. iCal export will not be available.
+2025-11-12 11:20:31,229 - EventManager - INFO - Starting CSV Export: export_to_csv
+2025-11-12 11:20:31,229 - EventManager - CRITICAL - Unexpected error in export_to_csv: TypeError: export_to_csv() got an unexpected keyword argument 'filters'
+2025-11-12 11:20:31,230 - EventManager - DEBUG - Traceback (most recent call last):
+  File "C:\Users\Jacob\Desktop\Basis Fall 2025\IS330\IS330_project\src\database\error_handling.py", line 86, in wrapper
+    result = func(*args, **kwargs)
+TypeError: export_to_csv() got an unexpected keyword argument 'filters'
+
+2025-11-12 11:21:30,067 - EventManager - INFO - Starting CSV Export: export_to_csv
+2025-11-12 11:21:30,069 - EventManager - INFO - Exported 45 events to CSV: test_export.csv
+2025-11-12 11:21:30,069 - EventManager - INFO - Completed CSV Export: export_to_csv
+2025-11-12 11:21:35,622 - EventManager - INFO - Starting iCal Export: export_to_ical
+2025-11-12 11:21:35,635 - EventManager - INFO - Exported 45 events to iCal: test_events.ics
+2025-11-12 11:21:35,637 - EventManager - INFO - Completed iCal Export: export_to_ical
+2025-11-12 11:21:45,725 - EventManager - INFO - Starting Single Event iCal Export: export_event_to_ical
+2025-11-12 11:21:45,726 - EventManager - INFO - Starting iCal Export: export_to_ical
+2025-11-12 11:21:45,732 - EventManager - INFO - Exported 1 events to iCal: event_644.ics
+2025-11-12 11:21:45,732 - EventManager - INFO - Completed iCal Export: export_to_ical
+2025-11-12 11:21:45,733 - EventManager - INFO - Completed Single Event iCal Export: export_event_to_ical
+2025-11-12 11:21:51,303 - EventManager - INFO - Starting CSV Export: export_to_csv
+2025-11-12 11:21:51,305 - EventManager - INFO - Exported 45 events to CSV: academic_events.csv
+2025-11-12 11:21:51,305 - EventManager - INFO - Completed CSV Export: export_to_csv
+2025-11-12 11:22:06,878 - EventManager - INFO - Starting CSV Export: export_to_csv
+2025-11-12 11:22:06,880 - EventManager - INFO - Exported 45 events to CSV: basic_export.csv
+2025-11-12 11:22:06,880 - EventManager - INFO - Completed CSV Export: export_to_csv
+2025-11-12 11:23:52,298 - EventManager - INFO - Starting CSV Export: export_to_csv
+2025-11-12 11:23:52,299 - EventManager - INFO - Exported 14 events to CSV: november_events.csv
+2025-11-12 11:23:52,300 - EventManager - INFO - Completed CSV Export: export_to_csv
+2025-11-12 11:23:57,677 - EventManager - INFO - Starting iCal Export: export_to_ical
+2025-11-12 11:23:57,686 - EventManager - INFO - Exported 7 events to iCal: sports_events.ics
+2025-11-12 11:23:57,686 - EventManager - INFO - Completed iCal Export: export_to_ical
+2025-11-12 11:24:23,877 - EventManager - INFO - Starting CSV Export: export_to_csv
+2025-11-12 11:24:23,878 - EventManager - INFO - Exported 13 events to CSV: enhanced_sample.csv
+2025-11-12 11:24:23,879 - EventManager - INFO - Completed CSV Export: export_to_csv

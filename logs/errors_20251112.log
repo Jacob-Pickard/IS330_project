@@ -1,0 +1,2 @@
+2025-11-12 11:20:31,229 - EventManager - CRITICAL - wrapper:106 - Unexpected error in export_to_csv: TypeError: export_to_csv() got an unexpected keyword argument 'filters'
+None

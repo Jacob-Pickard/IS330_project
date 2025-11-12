@@ -62,6 +62,21 @@ def init_database():
     )
     ''')
 
+    # Create event recommendations table
+    cursor.execute('''
+    CREATE TABLE IF NOT EXISTS event_recommendations (
+        event_id INTEGER PRIMARY KEY,
+        has_conflicts INTEGER DEFAULT 0,
+        conflict_type TEXT,
+        severity TEXT DEFAULT 'none',
+        recommended_action TEXT,
+        alternative_times TEXT,
+        details TEXT,
+        generated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (event_id) REFERENCES events (id) ON DELETE CASCADE
+    )
+    ''')
+
     # Insert sample categories
     sample_categories = [
         ('Academic', 'Academic events and deadlines'),

@@ -6,3 +6,4 @@ spacy==3.7.2
 keybert==0.8.3
 nltk==3.8.1
 python-slugify==8.0.1
+icalendar==5.0.11

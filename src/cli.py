@@ -12,6 +12,8 @@ from scraping.scrape_events import scrape_events
 from analysis.basic_analysis import analyze_events
 from analysis.enhanced_analysis import run_enhanced_analysis
 from analysis.conflict_detection import run_conflict_detection
+from analysis.recommendations import generate_all_recommendations, display_event_with_recommendations, get_event_recommendations
+from utils.export_events import export_to_csv, export_to_ical, export_event_to_ical, get_export_statistics
 
 def list_upcoming_events(limit=10, event_type=None, location=None, date_from=None, date_to=None):
     """List upcoming events with their IDs"""
@@ -85,6 +87,44 @@ def show_event_details(event_id):
         print(', '.join(event['tags']))
     else:
         print("No tags generated")
+    
+    # Show recommendations
+    recommendations = get_event_recommendations(event_id)
+    if recommendations:
+        print(f"\n{'─'*80}")
+        print("SCHEDULING RECOMMENDATIONS")
+        print(f"{'─'*80}")
+        
+        if recommendations['has_conflicts']:
+            severity_symbols = {
+                'high': '🔴 HIGH',
+                'medium': '🟡 MEDIUM',
+                'low': '🟢 LOW',
+                'none': '⚪ NONE'
+            }
+            severity_display = severity_symbols.get(recommendations['severity'], recommendations['severity'])
+            
+            print(f"Severity: {severity_display}")
+            print(f"Conflict Type: {recommendations['conflict_type'].replace('_', ' ').title()}")
+            
+            if recommendations['recommended_action']:
+                print(f"\nRecommended Action:")
+                print(f"  → {recommendations['recommended_action']}")
+            
+            if recommendations['alternative_times']:
+                print(f"\nAlternative Time Slots:")
+                for i, time_slot in enumerate(recommendations['alternative_times'], 1):
+                    print(f"  {i}. {time_slot}")
+            
+            if recommendations['details']:
+                print(f"\nDetails:")
+                print(f"  {recommendations['details']}")
+        else:
+            print("✓ No conflicts detected - event is optimally scheduled")
+        
+        print(f"\nLast updated: {recommendations['generated_at']}")
+    
+    print("="*80)
 
 def show_basic_analysis():
     """Show basic statistical analysis"""
@@ -154,6 +194,19 @@ def main():
                            help='Show AI-powered enhanced analysis')
     view_group.add_argument('--detect-conflicts', action='store_true',
                            help='Detect scheduling conflicts and double-bookings')
+    view_group.add_argument('--generate-recommendations', action='store_true',
+                           help='Generate scheduling recommendations for all events')
+    
+    # Export commands
+    export_group = parser.add_argument_group('Export')
+    export_group.add_argument('--export-csv', 
+                             help='Export events to CSV file (specify filename)')
+    export_group.add_argument('--export-ical', 
+                             help='Export events to iCal file (specify filename)')
+    export_group.add_argument('--export-event-ical', type=int,
+                             help='Export single event to iCal (specify event ID)')
+    export_group.add_argument('--include-enhanced', action='store_true',
+                             help='Include enhanced content in CSV export')
     
     # Data management
     data_group = parser.add_argument_group('Data Management')
@@ -234,6 +287,40 @@ def main():
     
     if args.detect_conflicts:
         run_conflict_detection()
+        return
+    
+    if args.generate_recommendations:
+        print("\nGenerating event recommendations...")
+        stats = generate_all_recommendations()
+        return
+    
+    # Export commands
+    if args.export_csv:
+        export_to_csv(
+            output_file=args.export_csv,
+            event_type=args.type,
+            location=args.location,
+            date_from=args.date_from,
+            date_to=args.date_to,
+            include_enhanced=args.include_enhanced
+        )
+        return
+    
+    if args.export_ical:
+        export_to_ical(
+            event_ids=None,  # Export all matching events
+            output_file=args.export_ical,
+            event_type=args.type,
+            location=args.location,
+            date_from=args.date_from,
+            date_to=args.date_to
+        )
+        return
+    
+    if args.export_event_ical:
+        export_event_to_ical(
+            event_id=args.export_event_ical
+        )
         return
         
     # If no arguments provided, show usage

@@ -1,6 +1,18 @@
 # Olympic College Event Manager
 
-A comprehensive system for scraping, managing, analyzing, and enhancing Olympic College events.
+A comprehensive system for scraping, managing, analyzing, and enhancing Olympic College events with automated conflict detection, data validation, and intelligent scheduling recommendations.
+
+## Key Features at a Glance
+
+- 🔄 **Automated Web Scraping** - Multi-page event extraction with retry logic
+- ✅ **Data Validation** - Field-level validation with fuzzy duplicate detection
+- 🛡️ **Error Handling** - Transaction management, automatic backups, comprehensive logging
+- 🤖 **AI Enhancement** - SEO scoring, auto-tagging, content improvement
+- ⚠️ **Conflict Detection** - Venue double-booking and building conflict identification
+- 💡 **Smart Recommendations** - Automated scheduling suggestions stored in database
+- 📊 **Analytics** - Statistical and AI-powered usage pattern analysis
+- 📤 **Export Functionality** - CSV and iCalendar format export with filtering
+- 🎯 **CLI Interface** - Unified command-line tool for all operations
 
 ---
 
@@ -50,19 +62,27 @@ IS330_project/
 │   ├── analysis/              # Event analysis tools
 │   │   ├── basic_analysis.py     # Statistical analysis
 │   │   ├── enhanced_analysis.py  # AI-powered insights
-│   │   └── conflict_detection.py # Scheduling conflict detection
+│   │   ├── conflict_detection.py # Scheduling conflict detection
+│   │   └── recommendations.py    # Event scheduling recommendations
 │   ├── content_enhancement/   # Content enhancement system
 │   │   └── content_enhancer.py   # Enhancement logic
 │   ├── database/             # Database management
 │   │   ├── db_utils.py          # Common operations
 │   │   ├── init_db.py           # Database initialization
-│   │   └── check_db.py          # Validation tools
+│   │   ├── check_db.py          # Validation tools
+│   │   ├── enhance_db.py        # Content enhancement DB operations
+│   │   ├── validation.py        # Event validation & duplicate detection
+│   │   └── error_handling.py    # Error handling, logging, recovery
 │   ├── scraping/             # Web scraping tools
-│   │   └── scrape_events.py     # Event scraper
+│   │   └── scrape_events.py     # Event scraper with validation
 │   ├── utils/                # Utility scripts
 │   │   └── check_past.py        # Past event checker
 │   └── cli.py                # Command-line interface
 ├── data/                     # Database storage
+│   └── backups/              # Automatic database backups
+├── logs/                     # Application logs
+│   ├── event_manager_*.log   # General application logs
+│   └── errors_*.log          # Error-only logs
 ├── requirements.txt          # Python dependencies
 └── README.md                 # This file
 ```
@@ -146,7 +166,51 @@ python src/cli.py --detect-conflicts
 # - Recurring event timing issues
 # - Alternative time slot suggestions for conflicts
 # - Detailed conflict reports with recommendations
+
+# Generate scheduling recommendations for all events
+python src/cli.py --generate-recommendations
+# Automatically generates:
+# - Conflict severity assessments (high/medium/low)
+# - Recommended actions for conflicting events
+# - Alternative time slot suggestions
+# - Event optimization recommendations
+# - Stored in database for quick access
 ```
+
+#### Export Commands
+
+Export events in multiple formats for calendar integration or data analysis:
+
+```bash
+# Export all upcoming events to CSV
+python src/cli.py --export-csv events.csv
+
+# Export with enhanced content included (SEO, tags, descriptions)
+python src/cli.py --export-csv enhanced_events.csv --include-enhanced
+
+# Export to iCalendar format (compatible with Google Calendar, Outlook, Apple Calendar)
+python src/cli.py --export-ical events.ics
+
+# Export a single event to iCalendar format
+python src/cli.py --export-event-ical 644
+
+# Export with filters (works with both CSV and iCal)
+python src/cli.py --export-csv academic.csv --type Academic
+python src/cli.py --export-ical december.ics --date-from 2025-12-01 --date-to 2025-12-31
+python src/cli.py --export-csv student_center.csv --location "Student Center"
+
+# Combine multiple filters
+python src/cli.py --export-ical filtered.ics --type "Arts" --location "Theater" --date-from 2025-11-01
+```
+
+**Using Exported Files:**
+
+- **CSV Files**: Open in Excel, Google Sheets, or any spreadsheet application for data analysis, filtering, and reporting.
+- **iCal Files (.ics)**: 
+  - **Google Calendar**: Settings → Import & Export → Import
+  - **Outlook**: File → Open & Export → Import/Export → Import an iCalendar (.ics)
+  - **Apple Calendar**: File → Import
+  - **Or simply double-click** the .ics file to import into your default calendar application
 
 ### Understanding Analysis Features
 
@@ -194,9 +258,24 @@ The system identifies and suggests improvements for:
 
 ### Common Workflows
 
+#### Automated Scraping Workflow
+When you run `python src/cli.py --scrape`, the system automatically:
+
+1. **Cleanup** - Removes past events and duplicates
+2. **Scrape** - Fetches events from Olympic College website (with retry logic)
+3. **Validate** - Checks all event data for quality and format
+4. **Backup** - Creates database backup before changes
+5. **Save** - Stores validated events (with transaction rollback on errors)
+6. **Detect Conflicts** - Identifies scheduling conflicts
+7. **Generate Recommendations** - Creates actionable suggestions
+8. **Verify** - Checks database integrity
+9. **Log** - Records all operations with statistics
+
+All of this happens automatically with one command!
+
 #### Daily Update Workflow
 ```bash
-# 1. Scrape new events (conflict detection runs automatically)
+# 1. Scrape new events (automatic: validation, conflicts, recommendations)
 python src/cli.py --scrape
 
 # 2. Enhance new content
@@ -233,6 +312,40 @@ python src/cli.py --enhance-all
 
 ## 2. Development History
 
+### November 12, 2025 - Data Quality & Validation, Error Handling & Recovery, Event Recommendations
+- ✅ **Event Recommendation System**
+  - Created automatic recommendation generation module (`recommendations.py`)
+  - Added `event_recommendations` table to database schema
+  - Integrated automatic recommendation generation into scraping workflow
+  - Recommendations stored in database for persistent access
+  - Severity-based conflict assessment (high/medium/low/none)
+  - Recommended actions for each event
+  - Alternative time slot suggestions
+  - Event optimization recommendations
+  - Integrated recommendations into CLI event detail views
+  - Added `--generate-recommendations` CLI command
+  
+- ✅ **Data Quality & Validation System**
+  - Created comprehensive event validation module (`validation.py`)
+  - Implemented field-level validation (title, date, time, location, link, description)
+  - Added data cleaning and normalization functions
+  - Built duplicate detection with fuzzy matching (Levenshtein distance, 85% threshold)
+  - Integrated validation into scraping workflow
+  - Automatic validation before database insertion
+  - Batch event validation with detailed statistics
+  
+- ✅ **Error Handling & Recovery**
+  - Comprehensive error handling system with decorators (`error_handling.py`)
+  - Database transaction management with automatic rollback
+  - Scraping retry logic with configurable attempts (3 retries, 5-second delay)
+  - Detailed logging system (general logs + error-only logs)
+  - Database backup creation before major operations
+  - Database integrity verification tools
+  - Orphaned record cleanup procedures
+  - Failed URL tracking and recovery
+  - Multi-level logging (DEBUG, INFO, ERROR) with daily rotation
+  - Custom exception types (DatabaseError, ScrapingError, ValidationError)
+
 ### October 31, 2025 - Content Enhancement, Cleanup & Conflict Detection
 - ✅ **Event Enhancement System**
   - Implemented AI-powered content enhancement module
@@ -249,6 +362,8 @@ python src/cli.py --enhance-all
   - Built time overlap detection algorithms
   - Integrated conflict detection into CLI
   - Generated detailed conflict reports
+  - Added alternative time slot suggestions (8 AM - 7 PM blocks)
+  - Automatic execution after scraping
   
 - ✅ **Enhanced Database Architecture**
   - Added `enhanced_content` table for processed event data
@@ -335,11 +450,20 @@ python src/cli.py --enhance-all
 
 - ✅ **Database Management**
   - SQLite database with normalized schema
-  - Events table for core event data
-  - Enhanced content table for AI-processed data
-  - Event tags table for categorization
+  - **Core Tables:**
+    - `events` - Main event data
+    - `categories` - Event categories
+    - `event_categories` - Event-category relationships
+    - `scraping_history` - Scraping audit trail
+  - **Enhancement Tables:**
+    - `enhanced_content` - AI-processed event data
+    - `event_tags` - Auto-generated tags
+  - **Analysis Tables:**
+    - `event_recommendations` - Scheduling recommendations
   - Automatic triggers for data processing
   - Database validation and checking tools
+  - Automatic backup creation before major operations
+  - Integrity verification and recovery procedures
 
 ### Content Enhancement
 - ✅ **AI-Powered Enhancement**
@@ -384,6 +508,16 @@ python src/cli.py --enhance-all
   - Detailed conflict reports with event details
   - Manual execution option available
 
+- ✅ **Event Recommendation System**
+  - **Automatic generation** after scraping and stored in database
+  - Conflict severity assessment (high/medium/low/none)
+  - Recommended actions for scheduling improvements
+  - Alternative time slot suggestions for conflicts
+  - Event optimization recommendations
+  - Integrated into event detail views
+  - Persistent storage for quick access
+  - Manual regeneration available via CLI
+
 ### Command-Line Interface
 - ✅ **Comprehensive CLI Tool**
   - Unified interface for all operations
@@ -392,15 +526,41 @@ python src/cli.py --enhance-all
   - Event listing with multiple filter options
   - Detailed event information display
   - Basic and enhanced analysis commands
+  - Export commands for CSV and iCal formats
   - User-friendly output formatting
+
+### Data Export & Integration
+- ✅ **Export Functionality** (November 12, 2025)
+  - CSV export with optional enhanced content
+  - iCalendar (.ics) export for universal calendar compatibility
+  - Single event export to iCal format
+  - Filtering support for all export types (type, location, date range)
+  - Google Calendar, Outlook, and Apple Calendar compatibility
+  - Bulk export capabilities
+  - Detailed export statistics and instructions
 
 ### Data Integrity
 - ✅ **Quality Assurance**
-  - Duplicate event detection using URLs
+  - Duplicate event detection using URLs and fuzzy matching
   - Automatic past event cleanup
-  - Data validation on input
+  - Comprehensive data validation on input
+  - Field-level validation (title, date, time, location, link, description)
+  - Data cleaning and normalization
   - Database integrity checks
-  - Error handling and logging
+  - Database backup and recovery procedures
+  - Transaction management with automatic rollback
+  - Comprehensive error handling and logging
+
+### Error Handling & Reliability
+- ✅ **Robust Error Management**
+  - Automatic retry logic for scraping failures (3 attempts)
+  - Database transaction rollback on errors
+  - Comprehensive logging system (logs/ directory)
+  - Failed operation tracking and recovery
+  - Database backup before major operations
+  - Integrity verification after data changes
+  - Orphaned record cleanup
+  - Detailed error messages with stack traces
 
 ### Code Organization
 - ✅ **Professional Structure**
@@ -431,17 +591,16 @@ python src/cli.py --enhance-all
   - Peak time distribution analysis
 
 #### Data Quality & Validation
-- [ ] **Input Validation System**
-  - Validate all scraped data fields
-  - Implement data cleaning procedures
-  - Enhanced duplicate detection algorithms
-  - Data integrity monitoring dashboard
+- [x] **Input Validation System** ✅ COMPLETED
+  - ✅ Validate all scraped data fields
+  - ✅ Implement data cleaning procedures
+  - ✅ Enhanced duplicate detection algorithms with fuzzy matching
 
-- [ ] **Error Handling**
-  - Graceful handling of scraping failures
-  - Database transaction rollback on errors
-  - Comprehensive error logging
-  - Recovery procedures for failed operations
+- [x] **Error Handling** ✅ COMPLETED
+  - ✅ Graceful handling of scraping failures with retry logic
+  - ✅ Database transaction rollback on errors
+  - ✅ Comprehensive error logging (general + error-only logs)
+  - ✅ Recovery procedures for failed operations (backup/restore)
 
 ### Medium Priority
 
@@ -453,10 +612,9 @@ python src/cli.py --enhance-all
   - Trend analysis graphs
 
 - [ ] **Export Capabilities**
-  - CSV export for event data
-  - PDF report generation
-  - Venue utilization reports
-  - Custom report builder
+  - ✅ CSV export for event data (November 12, 2025)
+  - ✅ iCal (.ics) export for calendar integration (November 12, 2025)
+  - [ ] PDF report generation
 
 #### Advanced Content Features
 - [ ] **Enhanced Search**
@@ -472,11 +630,13 @@ python src/cli.py --enhance-all
   - Attendance pattern analysis
 
 #### Calendar Integration
-- [ ] **Export Formats**
-  - iCal (.ics) export
-  - Google Calendar integration
-  - Outlook calendar compatibility
-  - Bulk calendar export
+- [x] **Export Formats** (November 12, 2025)
+  - ✅ iCal (.ics) export with filtering support
+  - ✅ Google Calendar compatibility via .ics import
+  - ✅ Outlook calendar compatibility via .ics import
+  - ✅ Apple Calendar compatibility via .ics import
+  - ✅ Bulk calendar export
+  - ✅ Single event export
 
 - [ ] **Sync Features**
   - Real-time calendar updates
@@ -563,4 +723,4 @@ This project is part of coursework for IS330 at Olympic College.
 
 ---
 
-**Last Updated:** October 31, 2025
+**Last Updated:** November 12, 2025
